@@ -1,0 +1,89 @@
+version: '3.8'
+
+networks:
+  lab_red:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+services:
+  # Servicio 1: DVWA (HTTP) — sin cambios, correcto para fuzzing
+  dvwa:
+    image: vulnerables/web-dvwa
+    container_name: lab_dvwa
+    ports:
+      - "8080:80"
+    networks:
+      lab_red:
+        ipv4_address: 172.28.0.10
+    restart: unless-stopped
+
+  # Servicio 2: Servidor FTP vulnerable
+  # Cambiado de tutum/vsftpd (abandonada desde ~2015) a fauria/vsftpd (mantenida activamente)
+  # Usa las mismas variables FTP_USER / FTP_PASS, así que tus comandos de Hydra no cambian.
+  ftp_server:
+    image: fauria/vsftpd
+    container_name: lab_ftp
+    environment:
+      - FTP_USER=estudiante
+      - FTP_PASS=password123
+      - PASV_ADDRESS=172.28.0.20
+      - PASV_MIN_PORT=21100
+      - PASV_MAX_PORT=21110
+    ports:
+      - "21:21"
+      - "20:20"
+      - "21100-21110:21100-21110"
+    networks:
+      lab_red:
+        ipv4_address: 172.28.0.20
+    restart: unless-stopped
+
+  # Servicio 3: Servidor SSH — sin cambios, la configuración ya es correcta
+  ssh_target:
+    image: lscr.io/linuxserver/openssh-server:latest
+    container_name: lab_ssh
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - PASSWORD_ACCESS=true
+      - USER_PASSWORD=password
+      - USER_NAME=labuser
+    ports:
+      - "2222:2222"
+    networks:
+      lab_red:
+        ipv4_address: 172.28.0.30
+    restart: unless-stopped
+
+  # Servicio 4: Servidor DNS (BIND9)
+  # Se agregan volúmenes con una zona intencionalmente vulnerable (allow-transfer any)
+  # para que el ataque AXFR realmente funcione. Ver dns/named.conf y dns/zones/db.lab.local
+  dns_server:
+    image: internetsystemsconsortium/bind9:9.20
+    container_name: lab_dns
+    volumes:
+      - ./dns/named.conf:/etc/bind/named.conf:ro
+      - ./dns/zones:/var/lib/bind:ro
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    networks:
+      lab_red:
+        ipv4_address: 172.28.0.40
+    restart: unless-stopped
+
+  # Servicio 5: Servidor Telnet
+  # Reemplazado panubo/telnetd (no se encontró como imagen pública documentada/mantenida)
+  # por una imagen propia mínima, construida localmente, con credenciales fijas.
+  telnet_server:
+    build:
+      context: ./telnet
+    container_name: lab_telnet
+    ports:
+      - "23:23"
+    networks:
+      lab_red:
+        ipv4_address: 172.28.0.50
+    restart: unless-stopped
