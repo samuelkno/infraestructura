@@ -13,7 +13,7 @@ services:
     image: vulnerables/web-dvwa
     container_name: lab_dvwa
     ports:
-      - "8080:80"
+      - "8081:80"
     networks:
       lab_red:
         ipv4_address: 172.28.0.10
@@ -32,7 +32,7 @@ services:
       - PASV_MIN_PORT=21100
       - PASV_MAX_PORT=21110
     ports:
-      - "21:21"
+      - "2121:21"
       - "20:20"
       - "21100-21110:21100-21110"
     networks:
@@ -51,7 +51,7 @@ services:
       - USER_PASSWORD=password
       - USER_NAME=labuser
     ports:
-      - "2222:2222"
+      - "3333:2222"
     networks:
       lab_red:
         ipv4_address: 172.28.0.30
@@ -67,8 +67,8 @@ services:
       - ./dns/named.conf:/etc/bind/named.conf:ro
       - ./dns/zones:/var/lib/bind:ro
     ports:
-      - "53:53/udp"
-      - "53:53/tcp"
+      - "5353:53/udp"
+      - "5353:53/tcp"
     networks:
       lab_red:
         ipv4_address: 172.28.0.40
@@ -82,7 +82,7 @@ services:
       context: ./telnet
     container_name: lab_telnet
     ports:
-      - "23:23"
+      - "2323:23"
     networks:
       lab_red:
         ipv4_address: 172.28.0.50
